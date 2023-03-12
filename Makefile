@@ -16,8 +16,15 @@ docker_image:
 init: docker_image
 	@if [ "" != "$(OVPN_URL)" ]; then \
 		docker volume create --name $(OVPN_DATA) ; \
-		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig -u $(OVPN_URL) ; \
+		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig -d -N -n "172.19.22.9" -n "172.19.22.4" -e "topology subnet" -p "route 172.19.0.0 255.255.0.0" -u $(OVPN_URL) ; \
 		docker run -v $(OVPN_DATA):/etc/openvpn --rm -it $(APP_IMAGE) ovpn_initpki ; \
+	else \
+		echo "OVPN_URL not set" ; \
+	fi
+
+update_config:
+	@if [ "" != "$(OVPN_URL)" ]; then \
+		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig -d -N -n "172.19.22.9" -n "172.19.22.4" -e "topology subnet" -p "route 172.19.0.0 255.255.0.0" -u $(OVPN_URL) ; \
 	else \
 		echo "OVPN_URL not set" ; \
 	fi
@@ -38,3 +45,6 @@ getclient:
 	else \
 		echo "OVPN_CLIENTNAME not set" ; \
 	 fi
+
+debug:
+	docker run  -v $(OVPN_DATA):/etc/openvpn --rm -it $(APP_IMAGE) bash -l
