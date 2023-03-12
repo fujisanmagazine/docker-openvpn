@@ -4,9 +4,24 @@ include .env
 export
 endif
 
+# setup variables
 APP_IMAGE="fujisanmagazine/docker-openvpn"
+
+ifeq ($(OVPN_ENV), "")
+OVPN_ENV="local"
+endif
+
+# load vars from conf if it exists
+# from: https://stackoverflow.com/posts/73509979/edit
+ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+
+ifneq ($(wildcard conf/$(OVPN_ENV).conf), "")
+include $(ROOTDIR)/conf/$(OVPN_ENV).conf
+export
+endif
+
 # TODO: handle shared network drive scenario
-OVPN_DATA="ovpn-data-officemx"
+OVPN_DATA="ovpn-data-$(OVPN_ENV)"
 
 .PHONY: init start genclient getclient
 
@@ -16,7 +31,7 @@ docker_image:
 init: docker_image
 	@if [ "" != "$(OVPN_URL)" ]; then \
 		docker volume create --name $(OVPN_DATA) ; \
-		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig -d -N -n "172.19.22.9" -n "172.19.22.4" -e "topology subnet" -p "route 172.19.0.0 255.255.0.0" -u $(OVPN_URL) ; \
+		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig $(OVPN_SERVERCONFIG) -u $(OVPN_URL) ; \
 		docker run -v $(OVPN_DATA):/etc/openvpn --rm -it $(APP_IMAGE) ovpn_initpki ; \
 	else \
 		echo "OVPN_URL not set" ; \
@@ -24,7 +39,7 @@ init: docker_image
 
 update_config:
 	@if [ "" != "$(OVPN_URL)" ]; then \
-		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig -d -N -n "172.19.22.9" -n "172.19.22.4" -e "topology subnet" -p "route 172.19.0.0 255.255.0.0" -u $(OVPN_URL) ; \
+		docker run -v $(OVPN_DATA):/etc/openvpn --rm $(APP_IMAGE) ovpn_genconfig $(OVPN_SERVERCONFIG) -u $(OVPN_URL) ; \
 	else \
 		echo "OVPN_URL not set" ; \
 	fi
