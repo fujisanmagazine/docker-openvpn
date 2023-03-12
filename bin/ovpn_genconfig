@@ -103,6 +103,7 @@ usage() {
     echo " -N    Configure NAT to access external server network"
     echo " -t    Use TAP device (instead of TUN device)"
     echo " -T    Encrypt packets with the given cipher algorithm instead of the default one (tls-cipher)."
+    echo " -U    Set update flag."
     echo " -z    Enable comp-lzo compression."
 }
 
@@ -167,12 +168,33 @@ OVPN_ROUTES=()
 OVPN_SERVER=192.168.255.0/24
 OVPN_SERVER_URL=''
 OVPN_TLS_CIPHER=''
-
-# Import existing configuration if present
-[ -r "$OVPN_ENV" ] && source "$OVPN_ENV"
+OVPN_UPDATE=1
 
 # Parse arguments
-while getopts ":a:e:E:C:T:r:s:du:bcp:n:k:DNm:f:tz2" opt; do
+while getopts ":U:" opt; do
+    case $opt in
+        U)
+            if [ "$OPTARG" == "0" ]; then
+              OVPN_UPDATE=0
+            else
+              OVPN_UPDATE=1
+            fi
+            ;;
+        :)
+            set +x
+            echo "Option -$OPTARG requires an argument." >&2
+            usage
+            exit 1
+            ;;
+    esac
+done
+
+# Import existing configuration if present
+[ $OVPN_UPDATE == "1" ] && [ -r "$OVPN_ENV" ] && source "$OVPN_ENV"
+
+# Parse arguments
+unset OPTIND
+while getopts ":a:e:E:C:T:r:s:du:bcp:n:k:DNm:f:tUsz2" opt; do
     case $opt in
         a)
             OVPN_AUTH="$OPTARG"
